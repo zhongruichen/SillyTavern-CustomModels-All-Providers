@@ -4,11 +4,13 @@ import { Popup, POPUP_TYPE } from '../../../popup.js';
 
 const settings = {
     provider: {
-        claude: ['foobar'],
-        openai: ['foobar'],
+        claude: [],
+        openai: [],
+        google: [],
     },
     openai_model: undefined,
     claude_model: undefined,
+    google_model: undefined,
 };
 Object.assign(settings, extension_settings.customModels ?? {});
 
