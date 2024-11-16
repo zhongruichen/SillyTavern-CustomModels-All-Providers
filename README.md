@@ -1,6 +1,6 @@
 # SillyTavern - Custom Models
 
-Add custom model names to OpenAI and Claude connections in SillyTavern.
+Add custom model names to OpenAI, Claude, and Google/Gemini connections in SillyTavern.
 
 | | |
 |-|-|
