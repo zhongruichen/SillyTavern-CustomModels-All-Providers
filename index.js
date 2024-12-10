@@ -13,6 +13,9 @@ const settings = {
     google_model: undefined,
 };
 Object.assign(settings, extension_settings.customModels ?? {});
+// fix if installed before google support was added
+if (!settings.provider.google) settings.provider.google = [];
+if (!settings.google_model) settings.google_model = undefined;
 
 for (const [provider, models] of Object.entries(settings.provider)) {
     const sel = /**@type {HTMLSelectElement}*/(document.querySelector(`#model_${provider}_select`));
