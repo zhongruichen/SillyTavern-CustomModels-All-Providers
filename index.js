@@ -1,6 +1,5 @@
 import { saveSettingsDebounced } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
-import { Popup, POPUP_TYPE } from '../../../popup.js';
 
 const settings = {
     provider: {
@@ -17,6 +16,25 @@ Object.assign(settings, extension_settings.customModels ?? {});
 if (!settings.provider.google) settings.provider.google = [];
 if (!settings.google_model) settings.google_model = undefined;
 
+// old popups, ancient ST
+let popupCaller;
+let popupType;
+let popupResult;
+try {
+    const popup = await import('../../../popup.js');
+    popupCaller = popup.callGenericPopup;
+    popupType = popup.POPUP_TYPE;
+    popupResult = popup.POPUP_RESULT;
+} catch {
+    popupCaller = (await import('../../../../script.js')).callPopup;
+    popupType = {
+        TEXT: 1,
+    };
+    popupResult = {
+        AFFIRMATIVE: 1,
+    };
+}
+
 for (const [provider, models] of Object.entries(settings.provider)) {
     const sel = /**@type {HTMLSelectElement}*/(document.querySelector(`#model_${provider}_select`));
     const h4 = sel.parentElement.querySelector('h4');
@@ -26,6 +44,7 @@ for (const [provider, models] of Object.entries(settings.provider)) {
         btn.classList.add('fa-solid', 'fa-fw', 'fa-pen-to-square');
         btn.title = 'Edit custom models';
         btn.addEventListener('click', async()=>{
+            let inp;
             const dom = document.createElement('div'); {
                 const header = document.createElement('h3'); {
                     header.textContent = `Custom Models: ${provider}`;
@@ -35,19 +54,18 @@ for (const [provider, models] of Object.entries(settings.provider)) {
                     hint.textContent = 'one model name per line';
                     dom.append(hint);
                 }
-            }
-            const dlg = new Popup(dom, POPUP_TYPE.INPUT, models.join('\n'), { rows:20 });
-            const prom = dlg.show();
-            dlg.dlg.querySelector('textarea').addEventListener('keydown', (evt)=>{
-                if (evt.key == 'Enter') {
-                    evt.stopImmediatePropagation();
-                    evt.stopPropagation();
+                inp = document.createElement('textarea'); {
+                    inp.classList.add('text_pole');
+                    inp.rows = 20;
+                    inp.value = models.join('\n');
+                    dom.append(inp);
                 }
-            });
+            }
+            const prom = popupCaller(dom, popupType.TEXT, null, { okButton: 'Save' });
             const result = await prom;
-            if (result !== null && result !== undefined && result !== false) {
+            if (result == popupResult.AFFIRMATIVE) {
                 while (models.pop());
-                models.push(...result.split('\n').filter(it=>it.length));
+                models.push(...inp.value.split('\n').filter(it=>it.length));
                 extension_settings.customModels = settings;
                 saveSettingsDebounced();
                 populateOptGroup();
