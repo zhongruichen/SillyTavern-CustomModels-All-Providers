@@ -104,14 +104,4 @@ for (const [provider, models] of Object.entries(settings.provider)) {
             saveSettingsDebounced();
         }
     });
-    $(sel).on('change', (evt)=>{
-        //! HACK jQuery is too dumb to trigger real change events, can only be caught by jQuery...
-        if ((evt.originalEvent ?? evt)?.isTrusted === undefined) {
-            // changes from jQuery code happen because not the entire <select> is checked, should revert
-            // to saved value
-            sel.value = settings[`${provider}_model`];
-            sel.dispatchEvent(new Event('change', { bubbles:true }));
-        }
-    });
 }
-
