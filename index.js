@@ -43,73 +43,78 @@ try {
     };
 }
 
-for (const [provider, models] of Object.entries(settings.provider)) {
-    const sel = /**@type {HTMLSelectElement}*/(document.querySelector(`#model_${provider}_select`));
-    const h4 = sel.parentElement.querySelector('h4');
-    const btn = document.createElement('div'); {
-        btn.classList.add('stcm--btn');
-        btn.classList.add('menu_button');
-        btn.classList.add('fa-solid', 'fa-fw', 'fa-pen-to-square');
-        btn.title = 'Edit custom models';
-        btn.addEventListener('click', async()=>{
-            let inp;
-            const dom = document.createElement('div'); {
-                const header = document.createElement('h3'); {
-                    header.textContent = `Custom Models: ${provider}`;
-                    dom.append(header);
+setTimeout(() => {
+    for (const [provider, models] of Object.entries(settings.provider)) {
+        const sel = /**@type {HTMLSelectElement}*/(document.querySelector(`#model_${provider}_select`));
+        if (!sel) continue; // Skip if the provider's select element doesn't exist
+        const h4 = sel.parentElement.querySelector('h4');
+        if (!h4) continue; // Skip if the header element doesn't exist
+
+        const btn = document.createElement('div'); {
+            btn.classList.add('stcm--btn');
+            btn.classList.add('menu_button');
+            btn.classList.add('fa-solid', 'fa-fw', 'fa-pen-to-square');
+            btn.title = 'Edit custom models';
+            btn.addEventListener('click', async()=>{
+                let inp;
+                const dom = document.createElement('div'); {
+                    const header = document.createElement('h3'); {
+                        header.textContent = `Custom Models: ${provider}`;
+                        dom.append(header);
+                    }
+                    const hint = document.createElement('small'); {
+                        hint.textContent = 'one model name per line';
+                        dom.append(hint);
+                    }
+                    inp = document.createElement('textarea'); {
+                        inp.classList.add('text_pole');
+                        inp.rows = 20;
+                        inp.value = models.join('\n');
+                        dom.append(inp);
+                    }
                 }
-                const hint = document.createElement('small'); {
-                    hint.textContent = 'one model name per line';
-                    dom.append(hint);
+                const prom = popupCaller(dom, popupType.TEXT, null, { okButton: 'Save' });
+                const result = await prom;
+                if (result == popupResult.AFFIRMATIVE) {
+                    while (models.pop());
+                    models.push(...inp.value.split('\n').filter(it=>it.length));
+                    extension_settings.customModels = settings;
+                    saveSettingsDebounced();
+                    populateOptGroup();
+                    if (settings[`${provider}_model`] && models.includes(settings[`${provider}_model`])) {
+                        sel.value = settings[`${provider}_model`];
+                        sel.dispatchEvent(new Event('change', { bubbles:true }));
+                    }
                 }
-                inp = document.createElement('textarea'); {
-                    inp.classList.add('text_pole');
-                    inp.rows = 20;
-                    inp.value = models.join('\n');
-                    dom.append(inp);
+            });
+            h4.append(btn);
+        }
+        const populateOptGroup = ()=>{
+            grp.innerHTML = '';
+            for (const model of models) {
+                const opt = document.createElement('option'); {
+                    opt.value = model;
+                    opt.textContent = model;
+                    grp.append(opt);
                 }
             }
-            const prom = popupCaller(dom, popupType.TEXT, null, { okButton: 'Save' });
-            const result = await prom;
-            if (result == popupResult.AFFIRMATIVE) {
-                while (models.pop());
-                models.push(...inp.value.split('\n').filter(it=>it.length));
+        };
+        const grp = document.createElement('optgroup'); {
+            grp.label = 'Custom Models';
+            populateOptGroup();
+            sel.insertBefore(grp, sel.children[0]);
+        }
+        if (settings[`${provider}_model`] && models.includes(settings[`${provider}_model`])) {
+            sel.value = settings[`${provider}_model`];
+            sel.dispatchEvent(new Event('change', { bubbles:true }));
+        }
+        sel.addEventListener('change', (evt)=>{
+            evt.stopImmediatePropagation();
+            if (settings[`${provider}_model`] != sel.value) {
+                settings[`${provider}_model`] = sel.value;
                 extension_settings.customModels = settings;
                 saveSettingsDebounced();
-                populateOptGroup();
-                if (settings[`${provider}_model`] && models.includes(settings[`${provider}_model`])) {
-                    sel.value = settings[`${provider}_model`];
-                    sel.dispatchEvent(new Event('change', { bubbles:true }));
-                }
             }
         });
-        h4.append(btn);
     }
-    const populateOptGroup = ()=>{
-        grp.innerHTML = '';
-        for (const model of models) {
-            const opt = document.createElement('option'); {
-                opt.value = model;
-                opt.textContent = model;
-                grp.append(opt);
-            }
-        }
-    };
-    const grp = document.createElement('optgroup'); {
-        grp.label = 'Custom Models';
-        populateOptGroup();
-        sel.insertBefore(grp, sel.children[0]);
-    }
-    if (settings[`${provider}_model`] && models.includes(settings[`${provider}_model`])) {
-        sel.value = settings[`${provider}_model`];
-        sel.dispatchEvent(new Event('change', { bubbles:true }));
-    }
-    sel.addEventListener('change', (evt)=>{
-        evt.stopImmediatePropagation();
-        if (settings[`${provider}_model`] != sel.value) {
-            settings[`${provider}_model`] = sel.value;
-            extension_settings.customModels = settings;
-            saveSettingsDebounced();
-        }
-    });
-}
+}, 500);
