@@ -1,20 +1,28 @@
 import { saveSettingsDebounced } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
 
-const settings = {
-    provider: {
-        claude: [],
-        openai: [],
-        google: [],
-    },
-    openai_model: undefined,
-    claude_model: undefined,
-    google_model: undefined,
-};
+const supportedProviders = [
+    'openai', 'claude', 'windowai', 'aimlapi', 'openrouter', 'ai21', 'scale',
+    'makersuite', 'vertexai', 'mistralai', 'custom', 'cohere', 'perplexity',
+    'groq', '01ai', 'nanogpt', 'deepseek', 'xai', 'pollinations', 'novelai',
+    'koboldai', 'textgenerationwebui', 'horde', 'anthropic', 'together',
+];
+
+const defaultSettings = { provider: {} };
+for (const provider of supportedProviders) {
+    defaultSettings.provider[provider] = [];
+    defaultSettings[`${provider}_model`] = undefined;
+}
+
+const settings = { ...defaultSettings };
 Object.assign(settings, extension_settings.customModels ?? {});
-// fix if installed before google support was added
-if (!settings.provider.google) settings.provider.google = [];
-if (!settings.google_model) settings.google_model = undefined;
+
+// Fix for settings from older versions
+for (const provider of supportedProviders) {
+    if (!settings.provider[provider]) {
+        settings.provider[provider] = [];
+    }
+}
 
 // old popups, ancient ST
 let popupCaller;
