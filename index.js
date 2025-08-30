@@ -144,9 +144,19 @@ setTimeout(() => {
         // We use a MutationObserver to re-apply our custom models whenever the list changes.
         if (provider === 'custom') {
             const observer = new MutationObserver(() => {
-                // A change happened in the list. We re-run our population logic to ensure
-                // our custom models are still present. This function is idempotent.
+                // Disconnect the observer temporarily to avoid an infinite loop from our own changes.
+                observer.disconnect();
+
+                // Re-run the population logic to add our models back. This function is idempotent.
                 populateCustomModels();
+
+                // Re-connect the observer to watch for the next external change.
+                const datalist = document.querySelector('#model_custom_select_fill');
+                const observerConfig = { childList: true };
+                observer.observe(sel, observerConfig);
+                if (datalist) {
+                    observer.observe(datalist, observerConfig);
+                }
             });
 
             const datalist = document.querySelector('#model_custom_select_fill');
