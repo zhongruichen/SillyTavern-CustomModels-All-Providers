@@ -47,7 +47,13 @@ setTimeout(() => {
     for (const [provider, models] of Object.entries(settings.provider)) {
         const sel = /**@type {HTMLSelectElement}*/(document.querySelector(`#model_${provider}_select`));
         if (!sel) continue; // Skip if the provider's select element doesn't exist
-        const h4 = sel.parentElement.querySelector('h4');
+        let h4 = sel.parentElement.querySelector('h4');
+        if (!h4) {
+            const parent = sel.parentElement;
+            if (parent && parent.previousElementSibling && parent.previousElementSibling.tagName === 'H4') {
+                h4 = /** @type {HTMLElement} */ (parent.previousElementSibling);
+            }
+        }
         if (!h4) continue; // Skip if the header element doesn't exist
 
         const btn = document.createElement('div'); {
