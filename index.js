@@ -86,7 +86,7 @@ setTimeout(() => {
                     models.push(...inp.value.split('\n').filter(it=>it.length));
                     extension_settings.customModels = settings;
                     saveSettingsDebounced();
-                    populateOptGroup();
+                    populateCustomModels();
                     if (settings[`${provider}_model`] && models.includes(settings[`${provider}_model`])) {
                         sel.value = settings[`${provider}_model`];
                         sel.dispatchEvent(new Event('change', { bubbles:true }));
@@ -95,21 +95,36 @@ setTimeout(() => {
             });
             h4.append(btn);
         }
-        const populateOptGroup = ()=>{
-            grp.innerHTML = '';
-            for (const model of models) {
-                const opt = document.createElement('option'); {
+        const populateCustomModels = () => {
+            if (provider === 'custom') {
+                const datalist = document.querySelector('#model_custom_select_fill');
+                if (sel) sel.innerHTML = '';
+                if (datalist) datalist.innerHTML = '';
+
+                for (const model of models) {
+                    const opt = document.createElement('option');
                     opt.value = model;
                     opt.textContent = model;
-                    grp.append(opt);
+                    if (sel) sel.append(opt.cloneNode(true));
+                    if (datalist) datalist.append(opt);
+                }
+            } else {
+                let optgroup = sel.querySelector('optgroup[label="Custom Models"]');
+                if (!optgroup) {
+                    optgroup = document.createElement('optgroup');
+                    optgroup.label = 'Custom Models';
+                    sel.insertBefore(optgroup, sel.children[0]);
+                }
+                optgroup.innerHTML = '';
+                for (const model of models) {
+                    const opt = document.createElement('option');
+                    opt.value = model;
+                    opt.textContent = model;
+                    optgroup.append(opt);
                 }
             }
         };
-        const grp = document.createElement('optgroup'); {
-            grp.label = 'Custom Models';
-            populateOptGroup();
-            sel.insertBefore(grp, sel.children[0]);
-        }
+        populateCustomModels();
         if (settings[`${provider}_model`] && models.includes(settings[`${provider}_model`])) {
             sel.value = settings[`${provider}_model`];
             sel.dispatchEvent(new Event('change', { bubbles:true }));
