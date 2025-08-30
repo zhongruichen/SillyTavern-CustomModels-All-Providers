@@ -47,7 +47,13 @@ setTimeout(() => {
     for (const [provider, models] of Object.entries(settings.provider)) {
         const sel = /**@type {HTMLSelectElement}*/(document.querySelector(`#model_${provider}_select`));
         if (!sel) continue; // Skip if the provider's select element doesn't exist
-        const h4 = sel.parentElement.querySelector('h4');
+        let h4 = sel.parentElement.querySelector('h4');
+        if (!h4) {
+            const parent = sel.parentElement;
+            if (parent && parent.previousElementSibling && parent.previousElementSibling.tagName === 'H4') {
+                h4 = /** @type {HTMLElement} */ (parent.previousElementSibling);
+            }
+        }
         if (!h4) continue; // Skip if the header element doesn't exist
 
         const btn = document.createElement('div'); {
@@ -80,7 +86,7 @@ setTimeout(() => {
                     models.push(...inp.value.split('\n').filter(it=>it.length));
                     extension_settings.customModels = settings;
                     saveSettingsDebounced();
-                    populateOptGroup();
+                    populateCustomModels();
                     if (settings[`${provider}_model`] && models.includes(settings[`${provider}_model`])) {
                         sel.value = settings[`${provider}_model`];
                         sel.dispatchEvent(new Event('change', { bubbles:true }));
@@ -89,21 +95,78 @@ setTimeout(() => {
             });
             h4.append(btn);
         }
-        const populateOptGroup = ()=>{
-            grp.innerHTML = '';
-            for (const model of models) {
-                const opt = document.createElement('option'); {
+        const populateCustomModels = () => {
+            const customModelClass = 'stcm-custom-model';
+            if (provider === 'custom') {
+                const datalist = document.querySelector('#model_custom_select_fill');
+
+                // Remove only our old custom models, preserving fetched models
+                sel.querySelectorAll(`.${customModelClass}`).forEach(opt => opt.remove());
+                if (datalist) {
+                    datalist.querySelectorAll(`.${customModelClass}`).forEach(opt => opt.remove());
+                }
+
+                // Add the new custom models with our class
+                const existingModels = new Set([...sel.options].map(opt => opt.value));
+                for (const model of models) {
+                    // Don't add if a model with the same name already exists (e.g. from API)
+                    if (existingModels.has(model)) continue;
+
+                    const opt = document.createElement('option');
                     opt.value = model;
                     opt.textContent = model;
-                    grp.append(opt);
+                    opt.classList.add(customModelClass);
+                    sel.append(opt.cloneNode(true));
+                    if (datalist) {
+                        datalist.append(opt);
+                    }
+                }
+            } else {
+                // For other providers, we manage a dedicated optgroup, which is simpler.
+                let optgroup = sel.querySelector('optgroup[label="Custom Models"]');
+                if (!optgroup) {
+                    optgroup = document.createElement('optgroup');
+                    optgroup.label = 'Custom Models';
+                    sel.insertBefore(optgroup, sel.children[0]);
+                }
+                optgroup.innerHTML = ''; // Clear the group and re-add
+                for (const model of models) {
+                    const opt = document.createElement('option');
+                    opt.value = model;
+                    opt.textContent = model;
+                    optgroup.append(opt);
                 }
             }
         };
-        const grp = document.createElement('optgroup'); {
-            grp.label = 'Custom Models';
-            populateOptGroup();
-            sel.insertBefore(grp, sel.children[0]);
+        populateCustomModels();
+
+        // For the 'custom' provider, the model list can be overwritten by the app when connecting.
+        // We use a MutationObserver to re-apply our custom models whenever the list changes.
+        if (provider === 'custom') {
+            const observer = new MutationObserver(() => {
+                // Disconnect the observer temporarily to avoid an infinite loop from our own changes.
+                observer.disconnect();
+
+                // Re-run the population logic to add our models back. This function is idempotent.
+                populateCustomModels();
+
+                // Re-connect the observer to watch for the next external change.
+                const datalist = document.querySelector('#model_custom_select_fill');
+                const observerConfig = { childList: true };
+                observer.observe(sel, observerConfig);
+                if (datalist) {
+                    observer.observe(datalist, observerConfig);
+                }
+            });
+
+            const datalist = document.querySelector('#model_custom_select_fill');
+            const observerConfig = { childList: true };
+            observer.observe(sel, observerConfig);
+            if (datalist) {
+                observer.observe(datalist, observerConfig);
+            }
         }
+
         if (settings[`${provider}_model`] && models.includes(settings[`${provider}_model`])) {
             sel.value = settings[`${provider}_model`];
             sel.dispatchEvent(new Event('change', { bubbles:true }));
